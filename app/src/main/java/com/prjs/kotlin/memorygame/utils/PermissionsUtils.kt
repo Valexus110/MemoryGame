@@ -13,6 +13,6 @@ fun isPermissionGranted(context: Context, permission: String): Boolean {
     ) == PackageManager.PERMISSION_GRANTED
 }
 
-fun requestPermission(activity: Activity?,permission: String,requestCode: Int) {
-    ActivityCompat.requestPermissions(activity!!, arrayOf(permission),requestCode)
+fun requestPermission(activity: Activity?, permission: String, requestCode: Int) {
+    ActivityCompat.requestPermissions(activity!!, arrayOf(permission), requestCode)
 }

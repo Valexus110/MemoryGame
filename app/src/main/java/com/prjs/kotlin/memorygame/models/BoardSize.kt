@@ -1,6 +1,6 @@
 package com.prjs.kotlin.memorygame.models
 
-enum class BoardSize (val numCards: Int) {
+enum class BoardSize(val numCards: Int) {
     EASY(numCards = 8),
     EASY_2(numCards = 12),
     EASY_3(numCards = 16),
@@ -8,11 +8,12 @@ enum class BoardSize (val numCards: Int) {
     HARD(numCards = 24);
 
     companion object {
-        fun getByValue(value: Int) = values().first{
-            it.numCards == value }
+        fun getByValue(value: Int) = values().first {
+            it.numCards == value
         }
+    }
 
-    fun getWidth() : Int {
+    fun getWidth(): Int {
         return when (this) {
             EASY -> 2
             EASY_2 -> 3
@@ -22,11 +23,11 @@ enum class BoardSize (val numCards: Int) {
         }
     }
 
-    fun getHeight() : Int {
+    fun getHeight(): Int {
         return numCards / getWidth()
     }
 
-    fun getNumPairs() : Int {
+    fun getNumPairs(): Int {
         return numCards / 2
     }
 }

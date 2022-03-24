@@ -25,7 +25,7 @@
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="8dp"
-        android:digits="1234567890abcdefghijklmnopqrstuvwxyz_-"
+        android:digits="абвгдежзиклмнопрстуфхцчшьыэюя1234567890abcdefghijklmnopqrstuvwxyz_-"
         android:ems="10"
         android:hint="@string/name_ru"
         android:imeOptions="actionDone"

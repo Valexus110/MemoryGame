@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.*
 import android.widget.EditText
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -31,7 +32,7 @@ import kotlinx.android.synthetic.main.dialog_download_board.*
 class MainActivity : AppCompatActivity() {
     companion object {
         private const val TAG = "MainActivity"
-        private const val CREATE_REQUEST_CODE = 110
+        //    private const val CREATE_REQUEST_CODE = 110
     }
 
     private val db = Firebase.firestore
@@ -56,8 +57,8 @@ class MainActivity : AppCompatActivity() {
         when (item.itemId) {
             R.id.mi_refresh -> {
                 if (memoryGame.getNumMoves() > 0 && !memoryGame.haveWonGame()) {
-                  //  val title = "Quit your current game?"
-                    val title ="Завершить текущую игру?"
+                    //  val title = "Quit your current game?"
+                    val title = "Завершить текущую игру?"
                     showAlertDialog(title, null) {
                         setupBoard()
                     }
@@ -82,29 +83,42 @@ class MainActivity : AppCompatActivity() {
         return super.onOptionsItemSelected(item)
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        if (requestCode == CREATE_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-            val customGameName = data?.getStringExtra(EXTRA_GAME_NAME)
-            if (customGameName == null) {
-                Log.e(TAG, "Got null custom game from CreateActivity")
-                return
+    private var resultLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                // There are no request codes
+                val data: Intent? = result.data
+                val customGameName = data?.getStringExtra(EXTRA_GAME_NAME)
+                if (customGameName == null) {
+                    Log.e(TAG, "Got null custom game from CreateActivity")
+                    return@registerForActivityResult
+                }
+                downloadGame(customGameName)
             }
-            downloadGame(customGameName)
         }
-        super.onActivityResult(requestCode, resultCode, data)
-    }
+    /* override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+         if (requestCode == CREATE_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+             val customGameName = data?.getStringExtra(EXTRA_GAME_NAME)
+             if (customGameName == null) {
+                 Log.e(TAG, "Got null custom game from CreateActivity")
+                 return
+             }
+             downloadGame(customGameName)
+         }
+         super.onActivityResult(requestCode, resultCode, data)
+     } */
 
 
     private fun showDownloadDialog() {
         val boardDownloadView =
-            LayoutInflater.from(this).inflate(R.layout.dialog_download_board, null)
-             //  val title = "Download custom game"
-             val title ="Загрузить пользовательскую игру"
-            showAlertDialog(title, boardDownloadView) {
-                val etDownloadGame = boardDownloadView.findViewById<EditText>(R.id.etDownloadGame)
-                val gameToDownload = etDownloadGame.text.toString().trim()
-                downloadGame(gameToDownload)
-            }
+            View.inflate(this, R.layout.dialog_download_board, null)
+        //  val title = "Download custom game"
+        val title = "Загрузить пользовательскую игру"
+        showAlertDialog(title, boardDownloadView) {
+            val etDownloadGame = boardDownloadView.findViewById<EditText>(R.id.etDownloadGame)
+            val gameToDownload = etDownloadGame.text.toString().trim()
+            downloadGame(gameToDownload)
+        }
     }
 
     private fun downloadGame(customGameName: String) {
@@ -113,7 +127,7 @@ class MainActivity : AppCompatActivity() {
             if (userImageList?.images == null) {
                 Log.e(TAG, "Invalid custom game data from Firestore")
                 //  val text = "Sorry, we couldn't find any such game, '$customGameName'"
-                val text ="Извините, подобной игры не существует, '$customGameName'"
+                val text = "Извините, подобной игры не существует, '$customGameName'"
                 Snackbar.make(
                     clRoot,
                     text,
@@ -124,12 +138,12 @@ class MainActivity : AppCompatActivity() {
             val numCards = userImageList.images.size * 2
             boardSize = BoardSize.getByValue(numCards)
             customGameImages = userImageList.images
-            for(imageUrl in userImageList.images) {
+            for (imageUrl in userImageList.images) {
                 Picasso.get().load(imageUrl).fetch()
             }
             //  val text = "You're now playing '$customGameName'!"
-            val text ="Вы сейчас играете в '$customGameName'!"
-            Snackbar.make(clRoot,text,Snackbar.LENGTH_LONG).show()
+            val text = "Вы сейчас играете в '$customGameName'!"
+            Snackbar.make(clRoot, text, Snackbar.LENGTH_LONG).show()
             gameName = customGameName
             setupBoard()
         }.addOnFailureListener { exeption ->
@@ -138,10 +152,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showCreationDialog() {
-        val boardSizeView = LayoutInflater.from(this).inflate(R.layout.dialog_board_size, null)
+        val boardSizeView = View.inflate(this, R.layout.dialog_board_size, null)
         val radioGroupSize = boardSizeView.radioGroup
-      //  val title ="Choose sie of board"
-        val title ="Выберите размер доски"
+        //  val title ="Choose sie of board"
+        val title = "Выберите размер доски"
         showAlertDialog(title, boardSizeView) {
             val desiredBoardSize = when (radioGroupSize.checkedRadioButtonId) {
                 R.id.rbEasy -> BoardSize.EASY
@@ -152,12 +166,13 @@ class MainActivity : AppCompatActivity() {
             }
             val intent = Intent(this, CreateActivity::class.java)
             intent.putExtra(EXTRA_BOARD_SIZE, desiredBoardSize)
-            startActivityForResult(intent, CREATE_REQUEST_CODE)
+            resultLauncher.launch(intent)
+            //       startActivityForResult(intent, CREATE_REQUEST_CODE)
         }
     }
 
     private fun showNewSizeDialog() {
-        val boardSizeView = LayoutInflater.from(this).inflate(R.layout.dialog_board_size, null)
+        val boardSizeView = View.inflate(this, R.layout.dialog_board_size, null)
         val radioGroupSize = boardSizeView.radioGroup
         when (boardSize) {
             BoardSize.EASY -> radioGroupSize.check(R.id.rbEasy)
@@ -167,7 +182,7 @@ class MainActivity : AppCompatActivity() {
             BoardSize.HARD -> radioGroupSize.check(R.id.rbHard)
         }
         //  val title ="Choose new size"
-        val title ="Выберите новый размер"
+        val title = "Выберите новый размер"
         showAlertDialog(title, boardSizeView) {
             boardSize = when (radioGroupSize.checkedRadioButtonId) {
                 R.id.rbEasy -> BoardSize.EASY
@@ -187,8 +202,8 @@ class MainActivity : AppCompatActivity() {
         view: View?,
         positiveClickListener: View.OnClickListener
     ) {
-      //  val textNo ="Cancel"
-        val textNo ="Отмена"
+        //  val textNo ="Cancel"
+        val textNo = "Отмена"
         AlertDialog.Builder(this)
             .setTitle(title)
             .setView(view)
@@ -236,20 +251,20 @@ class MainActivity : AppCompatActivity() {
 
             })
 
-        llGameInfo.setBackgroundColor(resources.getColor(R.color.info_color))
+        llGameInfo.setBackgroundColor(ContextCompat.getColor(this, R.color.info_color))
         rvBoard.adapter = adapter
         rvBoard.setHasFixedSize(true)
         rvBoard.layoutManager = GridLayoutManager(this, boardSize.getWidth())
-        rvBoard.setBackgroundColor(resources.getColor(R.color.board_color))
+        rvBoard.setBackgroundColor(ContextCompat.getColor(this, R.color.info_color))
     }
 
     private fun updateGameWithFlip(position: Int) {
-      //  val haveWon = "You already won!"
-      //  val invalidMove = "Invalid move"
-      //    val won = "You won!Congratulations"
-          val haveWon = "Вы уже выиграли!"
-          val invalidMove = "Неверный ход"
-          val won ="Вы выиграли!Поздравляем"
+        //  val haveWon = "You already won!"
+        //  val invalidMove = "Invalid move"
+        //    val won = "You won!Congratulations"
+        val haveWon = "Вы уже выиграли!"
+        val invalidMove = "Неверный ход"
+        val won = "Вы выиграли!Поздравляем"
         if (memoryGame.haveWonGame()) {
             Snackbar.make(clRoot, haveWon, Snackbar.LENGTH_LONG).show()
             return
@@ -266,13 +281,17 @@ class MainActivity : AppCompatActivity() {
                 ContextCompat.getColor(this, R.color.color_progress_full),
             ) as Int
             tvPairs.setTextColor(color)
-            tvPairs.text = getString(R.string.pairs_ru,memoryGame.numPairsFound,boardSize.getNumPairs())
+            tvPairs.text =
+                getString(R.string.pairs_ru, memoryGame.numPairsFound, boardSize.getNumPairs())
             if (memoryGame.haveWonGame()) {
                 Snackbar.make(clRoot, won, Snackbar.LENGTH_LONG).show()
-                CommonConfetti.rainingConfetti(clRoot, intArrayOf(Color.YELLOW,Color.BLUE,Color.CYAN)).oneShot()
+                CommonConfetti.rainingConfetti(
+                    clRoot,
+                    intArrayOf(Color.YELLOW, Color.BLUE, Color.CYAN)
+                ).oneShot()
             }
         }
-        tvMoves.text = getString(R.string.moves_ru,memoryGame.getNumMoves())
+        tvMoves.text = getString(R.string.moves_ru, memoryGame.getNumMoves())
         adapter.notifyDataSetChanged()
     }
 }

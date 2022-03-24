@@ -17,14 +17,14 @@ class ImagePickerAdapter(
     private val imageClickListener: ImageClickListener
 ) : RecyclerView.Adapter<ImagePickerAdapter.ViewHolder>() {
 
-    interface ImageClickListener  {
+    interface ImageClickListener {
         fun onPlaceHolderClicked() {
 
         }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = LayoutInflater.from(context).inflate(R.layout.card_image,parent, false)
+        val view = LayoutInflater.from(context).inflate(R.layout.card_image, parent, false)
         val cardWidth = parent.width / boardSize.getWidth()
         val cardHeight = parent.height / boardSize.getHeight()
         val cardSideLength = min(cardWidth, cardHeight)
@@ -35,16 +35,16 @@ class ImagePickerAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-                if(position < imageUris.size) {
-                    holder.bind(imageUris[position])
-                } else {
-                    holder.bind()
-                }
+        if (position < imageUris.size) {
+            holder.bind(imageUris[position])
+        } else {
+            holder.bind()
+        }
     }
 
     override fun getItemCount() = boardSize.getNumPairs()
 
-    inner class ViewHolder(itemView : View): RecyclerView.ViewHolder(itemView) {
+    inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val ivCustomImage = itemView.findViewById<ImageView>(R.id.ivCustomImage)
         fun bind(uri: Uri) {
             ivCustomImage.setImageURI(uri)
