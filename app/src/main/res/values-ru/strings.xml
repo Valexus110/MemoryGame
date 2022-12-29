@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Memory Game</string>
+    <string name="easy1">Легко 4 x 2</string>
+    <string name="easy2">Легко 4 x 3</string>
+    <string name="easy3">Легко 4 x 4</string>
+    <string name="medium">Средне 4 x 5</string>
+    <string name="hard">Сложно 4 x 6</string>
+    <string name="pairs1">Пары 0 / 4</string>
+    <string name="pairs2">Пары 0 / 6</string>
+    <string name="pairs3">Пары 0 / 8</string>
+    <string name="pairs4">Пары 0 / 10</string>
+    <string name="pairs5">Пары 0 / 12</string>
+    <string name="pairs">Пары: %1$d /%2$d</string>
+    <string name="start_moves">Ходы: 0 </string>
+    <string name="moves">Ходы: %1$d</string>
+    <string name="save">Сохранить</string>
+    <string name="name">Название игры</string>
+    <string name="edit_name">Введите название игры</string>
+    <string name ="menu_size">Выбрать новый размер</string>
+    <string name ="menu_create">Создать пользовательскую игру</string>
+    <string name ="menu_download">Загрузить пользовательскую игру</string>
+    <string name="menu_refresh">Обновить</string>
+    <string name="create_title1">Выберите изобр.(0 / %1$d)</string>
+    <string name="create_title2">Выберите изобр.(%1$d / %2$d)</string>
+    <string name="create_title3">Имя занято</string>
+    <string name="create_title4">Загрузка завершена!Давайте сыграем</string>
+    <string name="create_title5">Выберите изобр.</string>
+    <string name="create_message1">Для создания игры, вам нужно разрешить доступ к вашим фотографиям</string>
+    <string name="create_message2">Игра с именем \'%1$s\' уже существует. Пожалуйста выберите другое</string>
+    <string name="create_message3">Возникла ошибка при сохранении игры</string>
+    <string name="create_message4">Не удалось загрузить изображение</string>
+    <string name="create_message5">Не удалось создать игру</string>
+    <string name="main_title1">Завершить текущую игру?</string>
+    <string name="main_title2">Загрузить пользовательскую игру</string>
+    <string name="main_title3">Выберите размер доски</string>
+    <string name="main_title4">Выберите новый размер</string>
+    <string name="main_message1">Извините, подобной игры не существует \'%1$s\'</string>
+    <string name="main_message2">Вы сейчас играете в \'%1$s\'</string>
+    <string name="main_message3">Отмена</string>
+    <string name="have_won">Вы уже выиграли!</string>
+    <string name="invalid_move">Неверный ход</string>
+    <string name="won">Вы выиграли!Поздравляем</string>
+</resources>
