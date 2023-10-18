@@ -20,6 +20,7 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.recyclerview.widget.GridLayoutManager
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
@@ -46,7 +47,11 @@ class CreateActivity : AppCompatActivity() {
         setContentView(view)
 
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        boardSize = intent.getSerializableExtra(EXTRA_BOARD_SIZE) as BoardSize
+        boardSize = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getSerializableExtra(EXTRA_BOARD_SIZE, BoardSize::class.java) as BoardSize
+        } else {
+            @Suppress("DEPRECATION") intent.getSerializableExtra(EXTRA_BOARD_SIZE) as BoardSize
+        }
         numImagesRequired = boardSize.getNumPairs()
         supportActionBar?.title = getString(R.string.create_title1, numImagesRequired)
 
@@ -81,13 +86,24 @@ class CreateActivity : AppCompatActivity() {
                 boardSize,
                 object : ImagePickerAdapter.ImageClickListener {
                     override fun onPlaceHolderClicked() {
-                        if (isPermissionGranted(this@CreateActivity, READ_PHOTOS_PERMISSION)) {
-                            launchIntentForPhotos()
+                        if (Build.VERSION.SDK_INT >= 33) {
+                            if (isPermissionGranted(this@CreateActivity, READ_PHOTOS_PERMISSION)) {
+                                launchIntentForPhotos()
+                            } else {
+                                requestPermission(
+                                    this@CreateActivity, READ_PHOTOS_PERMISSION,
+                                    READ_PHOTOS_CODE
+                                )
+                            }
                         } else {
-                            requestPermission(
-                                this@CreateActivity, READ_PHOTOS_PERMISSION,
-                                READ_PHOTOS_CODE
-                            )
+                            if (isPermissionGranted(this@CreateActivity, READ_EXTERNAL_STORAGE)) {
+                                launchIntentForPhotos()
+                            } else {
+                                requestPermission(
+                                    this@CreateActivity, READ_EXTERNAL_STORAGE,
+                                    READ_PHOTOS_CODE
+                                )
+                            }
                         }
                     }
                 })
@@ -286,7 +302,10 @@ class CreateActivity : AppCompatActivity() {
     companion object {
         private const val TAG = "CreateActivity"
         private const val READ_PHOTOS_CODE = 248
-        private const val READ_PHOTOS_PERMISSION = android.Manifest.permission.READ_EXTERNAL_STORAGE
+        private const val READ_EXTERNAL_STORAGE = android.Manifest.permission.READ_EXTERNAL_STORAGE
+
+        @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+        private const val READ_PHOTOS_PERMISSION = android.Manifest.permission.READ_MEDIA_IMAGES
         private const val MIN_GAME_NAME_LENGTH = 3
         private const val MAX_GAME_NAME_LENGTH = 14
     }

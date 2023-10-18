@@ -6,19 +6,23 @@ plugins {
 }
 
 android {
-    compileSdkVersion 32
-
     defaultConfig {
-        configurations.all {
-            resolutionStrategy { force 'androidx.core:core-ktx:1.6.0' }
+        configurations.configureEach {
+            resolutionStrategy { force 'androidx.core:core-ktx:1.9.0' }
         }
         applicationId "com.prjs.kotlin.memorygame"
         minSdkVersion 21
-        targetSdkVersion 32
+        defaultConfig {
+            compileSdk 34
+        }
+        targetSdkVersion 34
         versionCode 1
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+    repositories {
+        maven { url 'https://repo1.maven.org/maven2' }
     }
 
     buildTypes {
@@ -36,20 +40,20 @@ android {
         targetCompatibility JavaVersion.VERSION_11
     }
     kotlinOptions {
-        jvmTarget = '1.8'
+        jvmTarget = 11
     }
+    namespace 'com.prjs.kotlin.memorygame'
 }
 
 dependencies {
 
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    implementation 'androidx.core:core-ktx:1.9.0'
-    implementation 'androidx.appcompat:appcompat:1.5.1'
-    implementation 'com.google.android.material:material:1.7.0'
+    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.10.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    testImplementation 'junit:junit:'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.4'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.0'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
     implementation platform('com.google.firebase:firebase-bom:29.1.0')
     implementation 'com.google.firebase:firebase-firestore-ktx'
     implementation 'com.google.firebase:firebase-storage-ktx'
