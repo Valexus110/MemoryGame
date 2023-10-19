@@ -4,6 +4,8 @@ A game app for remembering pictures made with Kotlin.
 ####  ####
 -Support Android 14 (SDK 34)
 ####  ####
+-Min Android Version 5.0 (SDK 21)
+####  ####
 -Different Board sizes
 ####  ####
 -Making your own board and saving it to Firebase, share it with other users
