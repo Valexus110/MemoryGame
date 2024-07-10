@@ -1,4 +1,4 @@
-package com.prjs.kotlin.memorygame
+package com.prjs.kotlin.memorygame.adapters
 
 import android.content.Context
 import android.util.Log
@@ -10,6 +10,7 @@ import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.recyclerview.widget.RecyclerView
+import com.prjs.kotlin.memorygame.R
 import com.prjs.kotlin.memorygame.models.BoardSize
 import com.prjs.kotlin.memorygame.models.MemoryCard
 import com.squareup.picasso.Picasso

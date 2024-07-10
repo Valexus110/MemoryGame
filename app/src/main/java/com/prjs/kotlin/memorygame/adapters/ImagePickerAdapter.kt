@@ -1,4 +1,4 @@
-package com.prjs.kotlin.memorygame
+package com.prjs.kotlin.memorygame.adapters
 
 import android.content.Context
 import android.net.Uri
@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
+import com.prjs.kotlin.memorygame.R
 import com.prjs.kotlin.memorygame.models.BoardSize
 import kotlin.math.min
 

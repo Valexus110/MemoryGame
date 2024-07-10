@@ -1,10 +1,9 @@
-package com.prjs.kotlin.memorygame
+package com.prjs.kotlin.memorygame.ui.createGame
 
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
@@ -25,6 +24,8 @@ import androidx.recyclerview.widget.GridLayoutManager
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
+import com.prjs.kotlin.memorygame.R
+import com.prjs.kotlin.memorygame.adapters.ImagePickerAdapter
 import com.prjs.kotlin.memorygame.databinding.ActivityCreateBinding
 import com.prjs.kotlin.memorygame.models.BoardSize
 import com.prjs.kotlin.memorygame.utils.*
@@ -39,6 +40,10 @@ class CreateActivity : AppCompatActivity() {
     private val storage = Firebase.storage
     private val db = Firebase.firestore
 
+    val requestPermissions =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { _ ->
+            // Handle permission requests results
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -80,33 +85,7 @@ class CreateActivity : AppCompatActivity() {
 
             })
 
-            adapter = ImagePickerAdapter(
-                this@CreateActivity,
-                chosenImageUris,
-                boardSize,
-                object : ImagePickerAdapter.ImageClickListener {
-                    override fun onPlaceHolderClicked() {
-                        if (Build.VERSION.SDK_INT >= 33) {
-                            if (isPermissionGranted(this@CreateActivity, READ_PHOTOS_PERMISSION)) {
-                                launchIntentForPhotos()
-                            } else {
-                                requestPermission(
-                                    this@CreateActivity, READ_PHOTOS_PERMISSION,
-                                    READ_PHOTOS_CODE
-                                )
-                            }
-                        } else {
-                            if (isPermissionGranted(this@CreateActivity, READ_EXTERNAL_STORAGE)) {
-                                launchIntentForPhotos()
-                            } else {
-                                requestPermission(
-                                    this@CreateActivity, READ_EXTERNAL_STORAGE,
-                                    READ_PHOTOS_CODE
-                                )
-                            }
-                        }
-                    }
-                })
+            adapter = addImagePickerAdapter()
             rvImagePicker.adapter = adapter
             rvImagePicker.setHasFixedSize(true)
             var spanCount = boardSize.getWidth()
@@ -115,24 +94,48 @@ class CreateActivity : AppCompatActivity() {
         }
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        val toastMessage = getString(R.string.create_message1)
-        if (requestCode == READ_PHOTOS_CODE) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                launchIntentForPhotos()
-            } else {
-                Toast.makeText(
-                    this,
-                    toastMessage,
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-        }
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+    private fun addImagePickerAdapter(): ImagePickerAdapter {
+        return ImagePickerAdapter(
+            this@CreateActivity,
+            chosenImageUris,
+            boardSize,
+            object : ImagePickerAdapter.ImageClickListener {
+                override fun onPlaceHolderClicked() {
+                    if (
+                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                        isPermissionGranted(this@CreateActivity, READ_MEDIA_IMAGES)
+                    ) {
+                        launchIntentForPhotos()
+                    } else if (
+                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
+                        isPermissionGranted(
+                            this@CreateActivity,
+                            READ_MEDIA_VISUAL_USER_SELECTED
+                        )
+                    ) {
+                        launchIntentForPhotos()
+                    } else if (isPermissionGranted(
+                            this@CreateActivity,
+                            READ_EXTERNAL_STORAGE
+                        )
+                    ) {
+                        launchIntentForPhotos()
+                    } else {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                            requestPermissions.launch(
+                                arrayOf(
+                                    READ_MEDIA_IMAGES,
+                                    READ_MEDIA_VISUAL_USER_SELECTED
+                                )
+                            )
+                        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            requestPermissions.launch(arrayOf(READ_MEDIA_IMAGES))
+                        } else {
+                            requestPermissions.launch(arrayOf(READ_EXTERNAL_STORAGE))
+                        }
+                    }
+                }
+            })
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -301,11 +304,14 @@ class CreateActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "CreateActivity"
-        private const val READ_PHOTOS_CODE = 248
         private const val READ_EXTERNAL_STORAGE = android.Manifest.permission.READ_EXTERNAL_STORAGE
 
+        @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+        private const val READ_MEDIA_VISUAL_USER_SELECTED =
+            android.Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
+
         @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-        private const val READ_PHOTOS_PERMISSION = android.Manifest.permission.READ_MEDIA_IMAGES
+        private const val READ_MEDIA_IMAGES = android.Manifest.permission.READ_MEDIA_IMAGES
         private const val MIN_GAME_NAME_LENGTH = 3
         private const val MAX_GAME_NAME_LENGTH = 14
     }

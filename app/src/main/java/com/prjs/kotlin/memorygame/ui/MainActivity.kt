@@ -1,5 +1,7 @@
-package com.prjs.kotlin.memorygame
+package com.prjs.kotlin.memorygame.ui
 
+//import com.google.firebase.firestore.ktx.firestore
+//import com.google.firebase.ktx.Firebase
 import android.animation.ArgbEvaluator
 import android.annotation.SuppressLint
 import android.app.Activity
@@ -10,35 +12,45 @@ import android.util.Log
 import android.view.*
 import android.widget.EditText
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import com.github.jinatonic.confetti.CommonConfetti
 import com.google.android.material.snackbar.Snackbar
-import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.analytics.FirebaseAnalytics
+import com.google.firebase.analytics.ktx.analytics
 import com.google.firebase.ktx.Firebase
+import com.prjs.kotlin.memorygame.R
+import com.prjs.kotlin.memorygame.adapters.MemoryBoardAdapter
 import com.prjs.kotlin.memorygame.databinding.ActivityMainBinding
 import com.prjs.kotlin.memorygame.databinding.DialogBoardSizeBinding
 import com.prjs.kotlin.memorygame.models.BoardSize
 import com.prjs.kotlin.memorygame.models.MemoryGame
-import com.prjs.kotlin.memorygame.models.UserImageList
+import com.prjs.kotlin.memorygame.ui.createGame.CreateActivity
 import com.prjs.kotlin.memorygame.utils.EXTRA_BOARD_SIZE
 import com.prjs.kotlin.memorygame.utils.EXTRA_GAME_NAME
 import com.squareup.picasso.Picasso
+import kotlinx.coroutines.launch
+
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var boardSizeBinding: DialogBoardSizeBinding
-    private val db = Firebase.firestore
+    private val viewModel: MainViewModel by viewModels { MainViewModel.Factory }
+
+    //    private val db = Firebase.firestore
     private var gameName: String? = null
     private var customGameImages: List<String>? = null
     private lateinit var memoryGame: MemoryGame
     private lateinit var adapter: MemoryBoardAdapter
     private var boardSize: BoardSize = BoardSize.EASY
-
+    private lateinit var analytics: FirebaseAnalytics
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        analytics = Firebase.analytics
         binding = ActivityMainBinding.inflate(layoutInflater)
         val view = binding.root
         setContentView(view)
@@ -62,14 +74,17 @@ class MainActivity : AppCompatActivity() {
                 }
                 return true
             }
+
             R.id.mi_new_size -> {
                 showNewSizeDialog()
                 return true
             }
+
             R.id.mi_custom -> {
                 showCreationDialog()
                 return true
             }
+
             R.id.mi_download -> {
                 showDownloadDialog()
                 return true
@@ -86,7 +101,9 @@ class MainActivity : AppCompatActivity() {
                 if (customGameName == null) {
                     Log.e(TAG, "Got null custom game from CreateActivity")
                     return@registerForActivityResult
-                }else downloadGame(customGameName)
+                } else lifecycleScope.launch {
+                    downloadGame(customGameName)
+                }
             }
         }
 
@@ -97,36 +114,81 @@ class MainActivity : AppCompatActivity() {
         showAlertDialog(getString(R.string.main_title2), boardDownloadView) {
             val etDownloadGame = boardDownloadView.findViewById<EditText>(R.id.etDownloadGame)
             val gameToDownload = etDownloadGame.text.toString().trim()
-            if(gameToDownload.isNotEmpty()) downloadGame(gameToDownload)
+            if (gameToDownload.isNotEmpty()) {
+                lifecycleScope.launch {
+                    downloadGame(gameToDownload)
+                }
+            } else {
+                Snackbar.make(
+                    binding.clRoot,
+                    "Field is empty",
+                    Snackbar.LENGTH_LONG
+                ).show()
+            }
         }
     }
 
-    private fun downloadGame(customGameName: String) {
-        db.collection("games").document(customGameName).get().addOnSuccessListener { document ->
-            val userImageList = document.toObject(UserImageList::class.java)
-            if (userImageList?.images == null) {
-                Log.e(TAG, "Invalid custom game data from Firestore")
-                Snackbar.make(
-                    binding.clRoot,
-                    getString(R.string.main_message1,customGameName),
-                    Snackbar.LENGTH_LONG
-                ).show()
-                return@addOnSuccessListener
+    private suspend fun downloadGame(customGameName: String) {
+        viewModel.downloadGame(customGameName).collect { response ->
+            when (response.first) {
+                "success" -> {
+                    val userImageList = response.second!!
+                    val numCards = userImageList.images!!.size * 2
+                    boardSize = BoardSize.getByValue(numCards)
+                    customGameImages = userImageList.images
+                    for (imageUrl in userImageList.images) {
+                        Picasso.get().load(imageUrl).fetch()
+                    }
+                    Snackbar.make(
+                        binding.clRoot,
+                        getString(R.string.main_message2, customGameName),
+                        Snackbar.LENGTH_LONG
+                    )
+                        .show()
+                    gameName = customGameName
+                    setupBoard()
+                }
+
+                else -> {
+                    Log.e(TAG, "Invalid custom game data from Firestore")
+                    Snackbar.make(
+                        binding.clRoot,
+                        getString(R.string.main_message1, customGameName),
+                        Snackbar.LENGTH_LONG
+                    ).show()
+                    Log.e(
+                        TAG,
+                        "Exception when retrieving game",
+                        Exception(response.first)
+                    )
+                }
             }
-            val numCards = userImageList.images.size * 2
-            boardSize = BoardSize.getByValue(numCards)
-            customGameImages = userImageList.images
-            for (imageUrl in userImageList.images) {
-                Picasso.get().load(imageUrl).fetch()
-            }
-            Snackbar.make(binding.clRoot, getString(R.string.main_message2,customGameName), Snackbar.LENGTH_LONG)
-                .show()
-            gameName = customGameName
-            setupBoard()
-        }.addOnFailureListener { exception ->
-            Log.e(TAG, "Exception when retrieving game", exception)
         }
     }
+//        db.collection("games").document(customGameName).get().addOnSuccessListener { document ->
+//            val userImageList = document.toObject(UserImageList::class.java)
+//            if (userImageList?.images == null) {
+//                Log.e(TAG, "Invalid custom game data from Firestore")
+//                Snackbar.make(
+//                    binding.clRoot,
+//                    getString(R.string.main_message1,customGameName),
+//                    Snackbar.LENGTH_LONG
+//                ).show()
+//                return@addOnSuccessListener
+//            }
+//            val numCards = userImageList.images.size * 2
+//            boardSize = BoardSize.getByValue(numCards)
+//            customGameImages = userImageList.images
+//            for (imageUrl in userImageList.images) {
+//                Picasso.get().load(imageUrl).fetch()
+//            }
+//            Snackbar.make(binding.clRoot, getString(R.string.main_message2,customGameName), Snackbar.LENGTH_LONG)
+//                .show()
+//            gameName = customGameName
+//            setupBoard()
+//        }.addOnFailureListener { exception ->
+//            Log.e(TAG, "Exception when retrieving game", exception)
+//        }
 
     private fun showCreationDialog() {
         boardSizeBinding = DialogBoardSizeBinding.inflate(layoutInflater)
@@ -194,18 +256,22 @@ class MainActivity : AppCompatActivity() {
                     tvMoves.text = resources.getString(R.string.easy1)
                     tvPairs.text = resources.getString(R.string.pairs1)
                 }
+
                 BoardSize.EASY_2 -> {
                     tvMoves.text = resources.getString(R.string.easy2)
                     tvPairs.text = resources.getString(R.string.pairs2)
                 }
+
                 BoardSize.EASY_3 -> {
                     tvMoves.text = resources.getString(R.string.easy3)
                     tvPairs.text = resources.getString(R.string.pairs3)
                 }
+
                 BoardSize.MEDIUM -> {
                     tvMoves.text = resources.getString(R.string.medium)
                     tvPairs.text = resources.getString(R.string.pairs4)
                 }
+
                 BoardSize.HARD -> {
                     tvMoves.text = resources.getString(R.string.hard)
                     tvPairs.text = resources.getString(R.string.pairs5)
