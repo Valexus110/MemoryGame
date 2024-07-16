@@ -1,4 +1,4 @@
-package com.prjs.kotlin.memorygame.ui.createGame
+package com.prjs.kotlin.memorygame.ui
 
 import android.annotation.SuppressLint
 import android.app.Activity
@@ -19,16 +19,16 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
-import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.ktx.Firebase
-import com.google.firebase.storage.ktx.storage
 import com.prjs.kotlin.memorygame.R
 import com.prjs.kotlin.memorygame.adapters.ImagePickerAdapter
 import com.prjs.kotlin.memorygame.databinding.ActivityCreateBinding
 import com.prjs.kotlin.memorygame.models.BoardSize
 import com.prjs.kotlin.memorygame.utils.*
+import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
 
 class CreateActivity : AppCompatActivity() {
@@ -37,8 +37,9 @@ class CreateActivity : AppCompatActivity() {
     private lateinit var boardSize: BoardSize
     private var numImagesRequired = -1
     private val chosenImageUris = mutableListOf<Uri>()
-    private val storage = Firebase.storage
-    private val db = Firebase.firestore
+    private val uploadedImageUrls = mutableListOf<String>()
+
+    private val viewModel: MainViewModel by viewModels { MainViewModel.Factory }
 
     val requestPermissions =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { _ ->
@@ -62,7 +63,9 @@ class CreateActivity : AppCompatActivity() {
 
         binding.apply {
             btnSave.setOnClickListener {
-                saveDataToFirebase()
+                lifecycleScope.launch {
+                    saveDataToFirebase()
+                }
             }
             etGameName.filters = arrayOf(InputFilter.LengthFilter(MAX_GAME_NAME_LENGTH))
             etGameName.addTextChangedListener(object : TextWatcher {
@@ -187,86 +190,77 @@ class CreateActivity : AppCompatActivity() {
 
     }
 
-    private fun saveDataToFirebase() {
+    private suspend fun saveDataToFirebase() {
         Log.i(TAG, "saveDataToFirebase")
         binding.btnSave.isEnabled = false
         val customGameName = binding.etGameName.text.toString()
         val title = getString(R.string.create_title3)
         val message = getString(R.string.create_message2, customGameName)
-        db.collection("games").document(customGameName).get().addOnSuccessListener { document ->
-            if (document != null && document.data != null) {
-                AlertDialog.Builder(this)
-                    .setTitle(title)
-                    .setMessage(message)
-                    .setPositiveButton("OK", null)
-                    .show()
-                binding.btnSave.isEnabled = true
-            } else {
-                handleImageUploading(customGameName)
-            }
-        }.addOnFailureListener { exception ->
-            Log.e(TAG, "Encounter error while saving game", exception)
-            Toast.makeText(this, getString(R.string.create_message3), Toast.LENGTH_LONG).show()
-            binding.btnSave.isEnabled = true
-        }
-    }
+        viewModel.saveDataToFirebase(customGameName, title, message).collect { response ->
+            when (response) {
+                "success" -> {
+                    AlertDialog.Builder(this)
+                        .setTitle(title)
+                        .setMessage(message)
+                        .setPositiveButton("OK", null)
+                        .show()
+                    binding.btnSave.isEnabled = true
+                }
 
-    private fun handleImageUploading(gameName: String) {
-        binding.pbUploading.visibility = View.VISIBLE
-        var didEncounterError = false
-        val uploadedImageUrls = mutableListOf<String>()
-        for ((index, photoUri) in chosenImageUris.withIndex()) {
-            val imageByteArray = getImageByteArray(photoUri)
-            val filePath = "images/$gameName/${System.currentTimeMillis()}-${index}.jpg"
-            val photoReference = storage.reference.child(filePath)
-            photoReference.putBytes(imageByteArray)
-                .continueWithTask { photoUploadTask ->
-                    Log.i(TAG, "Uploaded bytes: ${photoUploadTask.result?.bytesTransferred}")
-                    photoReference.downloadUrl
-                }.addOnCompleteListener { downloadUrlTask ->
-                    if (!downloadUrlTask.isSuccessful) {
-                        Log.e(TAG, "Exception with Firebase Storage", downloadUrlTask.exception)
-                        Toast.makeText(
-                            this,
-                            getString(R.string.create_message4),
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        didEncounterError = true
-                        return@addOnCompleteListener
-                    }
-                    if (didEncounterError) {
-                        binding.pbUploading.visibility = View.GONE
-                        return@addOnCompleteListener
-                    }
-                    val downloadUrl = downloadUrlTask.result.toString()
-                    uploadedImageUrls.add(downloadUrl)
-                    binding.pbUploading.progress =
-                        uploadedImageUrls.size * 100 / chosenImageUris.size
-                    Log.i(
-                        TAG,
-                        "Finished uploading $photoUri,num uploaded ${uploadedImageUrls.size}"
-                    )
-                    if (uploadedImageUrls.size == chosenImageUris.size) {
-                        handleAllImagesUploaded(gameName, uploadedImageUrls)
+                "handle images" -> {
+                    for (i in 0..<chosenImageUris.size) {
+                        lifecycleScope.launch {
+                            handleImageUploading(customGameName, i, chosenImageUris[i])
+                        }
                     }
                 }
+
+                else -> {
+                    Log.e(TAG, "Encounter error while saving game", Exception(response))
+                    Toast.makeText(this, getString(R.string.create_message3), Toast.LENGTH_LONG)
+                        .show()
+                    binding.btnSave.isEnabled = true
+                }
+            }
         }
     }
 
-    private fun handleAllImagesUploaded(
+    private suspend fun handleImageUploading(gameName: String, index: Int, photoUri: Uri) {
+        binding.pbUploading.visibility = View.VISIBLE
+        val imageByteArray = getImageByteArray(photoUri)
+        val filePath = "images/$gameName/${System.currentTimeMillis()}-${index}.jpg"
+        viewModel.handleImageUploading(gameName, filePath, imageByteArray).collect { response ->
+            if (response.second) {
+                val downloadUrl = response.first
+                uploadedImageUrls.add(downloadUrl)
+                binding.pbUploading.progress =
+                    uploadedImageUrls.size * 100 / chosenImageUris.size
+                Log.i(
+                    TAG,
+                    "Finished uploading $photoUri,num uploaded ${uploadedImageUrls.size}"
+                )
+                if (uploadedImageUrls.size == chosenImageUris.size) {
+                    handleAllImagesUploaded(gameName, uploadedImageUrls)
+                }
+            } else {
+                Log.e(TAG, "Exception with Firebase Storage", Exception(response.first))
+                Toast.makeText(
+                    this,
+                    getString(R.string.create_message4),
+                    Toast.LENGTH_SHORT
+                ).show()
+                binding.pbUploading.visibility = View.GONE
+            }
+        }
+    }
+
+    private suspend fun handleAllImagesUploaded(
         gameName: String,
         imageUrls: MutableList<String>
     ) {
-        db.collection("games").document(gameName)
-            .set(mapOf("images" to imageUrls))
-            .addOnCompleteListener { gameCreationTask ->
-                binding.pbUploading.visibility = View.GONE
-                if (!gameCreationTask.isSuccessful) {
-                    Log.e(TAG, "Exception with game creation", gameCreationTask.exception)
-                    Toast.makeText(this, getString(R.string.create_message5), Toast.LENGTH_SHORT)
-                        .show()
-                    return@addOnCompleteListener
-                }
+        binding.pbUploading.visibility = View.GONE
+        viewModel.handleAllImagesUploaded(gameName, imageUrls).collect {
+            if (it) {
                 Log.i(TAG, "Successfully create game $gameName")
                 AlertDialog.Builder(this)
                     .setTitle(getString(R.string.create_title4))
@@ -276,7 +270,11 @@ class CreateActivity : AppCompatActivity() {
                         setResult(Activity.RESULT_OK, resultData)
                         finish()
                     }.show()
+            } else {
+                Toast.makeText(this, getString(R.string.create_message5), Toast.LENGTH_SHORT)
+                    .show()
             }
+        }
     }
 
     private fun getImageByteArray(photoUri: Uri): ByteArray {

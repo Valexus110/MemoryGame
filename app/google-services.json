@@ -1,36 +1,26 @@
 {
   "project_info": {
-    "project_number": "176208777384",
-    "project_id": "memory-game-1818d",
-    "storage_bucket": "memory-game-1818d.appspot.com"
+    "project_number": "566977319331",
+    "project_id": "memory-game-39656",
+    "storage_bucket": "memory-game-39656.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:176208777384:android:4a63f9df31a04d7e24329d",
+        "mobilesdk_app_id": "1:566977319331:android:8f6ba8f51ee2585c7a4a16",
         "android_client_info": {
           "package_name": "com.prjs.kotlin.memorygame"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "176208777384-0hit1hjsniegq06t4u9m18jmo3rbdk5a.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBDCsioCfCkM78125fmfcNvTtbHq7A08c8"
+          "current_key": "AIzaSyBvf2Y5ulxhdoK7MZBIzpzA8QcgNqH8Ea4"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "176208777384-0hit1hjsniegq06t4u9m18jmo3rbdk5a.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }

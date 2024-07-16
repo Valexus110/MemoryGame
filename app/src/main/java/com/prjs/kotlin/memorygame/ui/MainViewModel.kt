@@ -1,11 +1,8 @@
 package com.prjs.kotlin.memorygame.ui
 
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
-import androidx.lifecycle.createSavedStateHandle
-import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.prjs.kotlin.memorygame.MemoryGameApplication
@@ -20,16 +17,23 @@ class MainViewModel(
         return repository.downloadGame(customName)
     }
 
-    fun saveDataToFirebase(customName: String) {
-
+    fun saveDataToFirebase(customGameName: String, title: String, message: String): Flow<String> {
+        return repository.saveDataToFirebase(customGameName, title, message)
     }
 
-    fun handleImageUploading() {
-
+    fun handleImageUploading(
+        gameName: String,
+        filePath: String,
+        imageBytes: ByteArray
+    ): Flow<Pair<String, Boolean>> {
+        return repository.handleImageUploading(gameName, filePath, imageBytes)
     }
 
-    fun handleAllImagesUploaded() {
-
+    fun handleAllImagesUploaded(
+        gameName: String,
+        imageUrls: MutableList<String>
+    ): Flow<Boolean> {
+        return repository.handleAllImagesUploaded(gameName, imageUrls)
     }
 
     companion object {

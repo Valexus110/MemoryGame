@@ -1,7 +1,5 @@
 package com.prjs.kotlin.memorygame.ui
 
-//import com.google.firebase.firestore.ktx.firestore
-//import com.google.firebase.ktx.Firebase
 import android.animation.ArgbEvaluator
 import android.annotation.SuppressLint
 import android.app.Activity
@@ -29,7 +27,6 @@ import com.prjs.kotlin.memorygame.databinding.ActivityMainBinding
 import com.prjs.kotlin.memorygame.databinding.DialogBoardSizeBinding
 import com.prjs.kotlin.memorygame.models.BoardSize
 import com.prjs.kotlin.memorygame.models.MemoryGame
-import com.prjs.kotlin.memorygame.ui.createGame.CreateActivity
 import com.prjs.kotlin.memorygame.utils.EXTRA_BOARD_SIZE
 import com.prjs.kotlin.memorygame.utils.EXTRA_GAME_NAME
 import com.squareup.picasso.Picasso
@@ -40,8 +37,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var boardSizeBinding: DialogBoardSizeBinding
     private val viewModel: MainViewModel by viewModels { MainViewModel.Factory }
-
-    //    private val db = Firebase.firestore
     private var gameName: String? = null
     private var customGameImages: List<String>? = null
     private lateinit var memoryGame: MemoryGame
@@ -165,31 +160,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-//        db.collection("games").document(customGameName).get().addOnSuccessListener { document ->
-//            val userImageList = document.toObject(UserImageList::class.java)
-//            if (userImageList?.images == null) {
-//                Log.e(TAG, "Invalid custom game data from Firestore")
-//                Snackbar.make(
-//                    binding.clRoot,
-//                    getString(R.string.main_message1,customGameName),
-//                    Snackbar.LENGTH_LONG
-//                ).show()
-//                return@addOnSuccessListener
-//            }
-//            val numCards = userImageList.images.size * 2
-//            boardSize = BoardSize.getByValue(numCards)
-//            customGameImages = userImageList.images
-//            for (imageUrl in userImageList.images) {
-//                Picasso.get().load(imageUrl).fetch()
-//            }
-//            Snackbar.make(binding.clRoot, getString(R.string.main_message2,customGameName), Snackbar.LENGTH_LONG)
-//                .show()
-//            gameName = customGameName
-//            setupBoard()
-//        }.addOnFailureListener { exception ->
-//            Log.e(TAG, "Exception when retrieving game", exception)
-//        }
-
     private fun showCreationDialog() {
         boardSizeBinding = DialogBoardSizeBinding.inflate(layoutInflater)
         val view = boardSizeBinding.root
