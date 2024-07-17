@@ -11,8 +11,8 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.prjs.kotlin.memorygame.R
-import com.prjs.kotlin.memorygame.models.BoardSize
 import com.prjs.kotlin.memorygame.models.MemoryCard
+import com.prjs.kotlin.memorygame.utils.BoardSize
 import com.squareup.picasso.Picasso
 import kotlin.math.min
 

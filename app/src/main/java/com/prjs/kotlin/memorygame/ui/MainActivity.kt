@@ -10,7 +10,6 @@ import android.util.Log
 import android.view.*
 import android.widget.EditText
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -21,22 +20,24 @@ import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.analytics.ktx.analytics
 import com.google.firebase.ktx.Firebase
+import com.prjs.kotlin.memorygame.MemoryGameApplication
 import com.prjs.kotlin.memorygame.R
 import com.prjs.kotlin.memorygame.adapters.MemoryBoardAdapter
 import com.prjs.kotlin.memorygame.databinding.ActivityMainBinding
 import com.prjs.kotlin.memorygame.databinding.DialogBoardSizeBinding
-import com.prjs.kotlin.memorygame.models.BoardSize
 import com.prjs.kotlin.memorygame.models.MemoryGame
-import com.prjs.kotlin.memorygame.utils.EXTRA_BOARD_SIZE
-import com.prjs.kotlin.memorygame.utils.EXTRA_GAME_NAME
+import com.prjs.kotlin.memorygame.utils.*
 import com.squareup.picasso.Picasso
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var boardSizeBinding: DialogBoardSizeBinding
-    private val viewModel: MainViewModel by viewModels { MainViewModel.Factory }
+
+    @Inject
+    lateinit var viewModel: MainViewModel
     private var gameName: String? = null
     private var customGameImages: List<String>? = null
     private lateinit var memoryGame: MemoryGame
@@ -44,6 +45,7 @@ class MainActivity : AppCompatActivity() {
     private var boardSize: BoardSize = BoardSize.EASY
     private lateinit var analytics: FirebaseAnalytics
     override fun onCreate(savedInstanceState: Bundle?) {
+        (applicationContext as MemoryGameApplication).appComponent.inject(this)
         super.onCreate(savedInstanceState)
         analytics = Firebase.analytics
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -126,7 +128,7 @@ class MainActivity : AppCompatActivity() {
     private suspend fun downloadGame(customGameName: String) {
         viewModel.downloadGame(customGameName).collect { response ->
             when (response.first) {
-                "success" -> {
+                FlowStatus.Success -> {
                     val userImageList = response.second!!
                     val numCards = userImageList.images!!.size * 2
                     boardSize = BoardSize.getByValue(numCards)
@@ -151,15 +153,11 @@ class MainActivity : AppCompatActivity() {
                         getString(R.string.main_message1, customGameName),
                         Snackbar.LENGTH_LONG
                     ).show()
-                    Log.e(
-                        TAG,
-                        "Exception when retrieving game",
-                        Exception(response.first)
-                    )
                 }
             }
         }
     }
+
     private fun showCreationDialog() {
         boardSizeBinding = DialogBoardSizeBinding.inflate(layoutInflater)
         val view = boardSizeBinding.root

@@ -1,5 +1,6 @@
 package com.prjs.kotlin.memorygame.models
 
+import com.prjs.kotlin.memorygame.utils.BoardSize
 import com.prjs.kotlin.memorygame.utils.DEFAULT_ICONS
 
 class MemoryGame(private val boardSize: BoardSize, customImages: List<String>?) {

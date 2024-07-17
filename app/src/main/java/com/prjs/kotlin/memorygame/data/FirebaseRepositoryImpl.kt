@@ -5,23 +5,30 @@ import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
 import com.prjs.kotlin.memorygame.models.UserImageList
+import com.prjs.kotlin.memorygame.utils.FlowStatus
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
+import javax.inject.Inject
 
-class FirebaseRepositoryImpl : FirebaseRepository {
+class FirebaseRepositoryImpl @Inject constructor() : FirebaseRepository {
     private val storage = Firebase.storage
     private val db = Firebase.firestore
     override fun downloadGame(customGameName: String) = callbackFlow {
         db.collection("games").document(customGameName).get().addOnSuccessListener { document ->
             val userImageList = document.toObject(UserImageList::class.java)
             if (userImageList?.images == null) {
-                trySend("error" to userImageList)
+                trySend(FlowStatus.Error to userImageList)
                 return@addOnSuccessListener
             }
-            trySend("success" to userImageList)
+            trySend(FlowStatus.Success to userImageList)
             return@addOnSuccessListener
         }.addOnFailureListener { exception ->
-            trySend(exception.toString() to null)
+            Log.e(
+                TAG,
+                "Exception when retrieving game",
+                Exception(exception)
+            )
+            trySend(FlowStatus.Error to null)
         }
         awaitClose { channel.close() }
     }
@@ -30,13 +37,14 @@ class FirebaseRepositoryImpl : FirebaseRepository {
         callbackFlow {
             db.collection("games").document(customGameName).get().addOnSuccessListener { document ->
                 if (document != null && document.data != null) {
-                    trySend("success")
+                    trySend(FlowStatus.Success)
                 } else {
                     storage.reference.child("images/$customGameName").delete()
-                    trySend("handle images")
+                    trySend(FlowStatus.HandleImages)
                 }
             }.addOnFailureListener { exception ->
-                trySend(exception.toString())
+                Log.e(TAG, "Encounter error while saving game", exception)
+                trySend(FlowStatus.Error)
             }
             awaitClose { channel.close() }
         }
@@ -52,19 +60,19 @@ class FirebaseRepositoryImpl : FirebaseRepository {
                 }
                 .addOnCompleteListener { downloadUrlTask ->         //}
                     if (!downloadUrlTask.isSuccessful) {
-                        trySend(downloadUrlTask.toString() to false)
+                        trySend(downloadUrlTask.toString() to FlowStatus.Error)
                         didEncounterError = true
                         return@addOnCompleteListener
                     }
                     if (didEncounterError) {
                         storage.reference.child("images/$gameName").delete()
-                        trySend(downloadUrlTask.toString() to false)
+                        trySend(downloadUrlTask.toString() to FlowStatus.Error)
                         return@addOnCompleteListener
                     }
-                    trySend(downloadUrlTask.result.toString() to true)
+                    trySend(downloadUrlTask.result.toString() to FlowStatus.Success)
                     return@addOnCompleteListener
                 }.addOnFailureListener { e ->
-                    trySend(e.toString() to false)
+                    trySend(e.toString() to FlowStatus.Error)
                 }
             awaitClose { channel.close() }
         }
@@ -79,12 +87,12 @@ class FirebaseRepositoryImpl : FirebaseRepository {
             .addOnCompleteListener { gameCreationTask ->
                 if (!gameCreationTask.isSuccessful) {
                     Log.e(TAG, "Exception with game creation", gameCreationTask.exception)
-                    trySend(false)
+                    trySend(FlowStatus.Error)
                     return@addOnCompleteListener
                 }
-                trySend(true)
+                trySend(FlowStatus.Success)
             }.addOnFailureListener {
-                trySend(false)
+                trySend(FlowStatus.Error)
                 return@addOnFailureListener
             }
         awaitClose { channel.close() }

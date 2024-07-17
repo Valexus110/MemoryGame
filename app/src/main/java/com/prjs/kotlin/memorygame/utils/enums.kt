@@ -1,4 +1,10 @@
-package com.prjs.kotlin.memorygame.models
+package com.prjs.kotlin.memorygame.utils
+
+enum class FlowStatus {
+    Success,
+    Error,
+    HandleImages,
+}
 
 enum class BoardSize(val numCards: Int) {
     EASY(numCards = 8),

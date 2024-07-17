@@ -1,13 +1,17 @@
 package com.prjs.kotlin.memorygame
 
 import android.app.Application
-import com.prjs.kotlin.memorygame.data.AppContainer
-import com.prjs.kotlin.memorygame.data.DefaultAppContainer
+import com.prjs.kotlin.memorygame.di.FirebaseModule
+import com.prjs.kotlin.memorygame.ui.CreateActivity
+import com.prjs.kotlin.memorygame.ui.MainActivity
+import dagger.Component
+
+@Component(modules = [FirebaseModule::class])
+interface AppComponent {
+    fun inject(activity: MainActivity)
+    fun inject(activity: CreateActivity)
+}
 
 class MemoryGameApplication:Application() {
-    lateinit var container: AppContainer
-    override fun onCreate() {
-        super.onCreate()
-        container = DefaultAppContainer()
-    }
+    val appComponent: AppComponent = DaggerAppComponent.create()
 }

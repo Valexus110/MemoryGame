@@ -8,7 +8,7 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
 import com.prjs.kotlin.memorygame.R
-import com.prjs.kotlin.memorygame.models.BoardSize
+import com.prjs.kotlin.memorygame.utils.BoardSize
 import kotlin.math.min
 
 class ImagePickerAdapter(

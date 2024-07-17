@@ -4,13 +4,10 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
-import android.graphics.Bitmap
-import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.provider.MediaStore
 import android.text.Editable
 import android.text.InputFilter
 import android.text.TextWatcher
@@ -19,17 +16,16 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
+import com.prjs.kotlin.memorygame.MemoryGameApplication
 import com.prjs.kotlin.memorygame.R
 import com.prjs.kotlin.memorygame.adapters.ImagePickerAdapter
 import com.prjs.kotlin.memorygame.databinding.ActivityCreateBinding
-import com.prjs.kotlin.memorygame.models.BoardSize
 import com.prjs.kotlin.memorygame.utils.*
 import kotlinx.coroutines.launch
-import java.io.ByteArrayOutputStream
+import javax.inject.Inject
 
 class CreateActivity : AppCompatActivity() {
     private lateinit var binding: ActivityCreateBinding
@@ -39,7 +35,8 @@ class CreateActivity : AppCompatActivity() {
     private val chosenImageUris = mutableListOf<Uri>()
     private val uploadedImageUrls = mutableListOf<String>()
 
-    private val viewModel: MainViewModel by viewModels { MainViewModel.Factory }
+    @Inject
+    lateinit var viewModel: MainViewModel
 
     val requestPermissions =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { _ ->
@@ -47,6 +44,7 @@ class CreateActivity : AppCompatActivity() {
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        (applicationContext as MemoryGameApplication).appComponent.inject(this)
         super.onCreate(savedInstanceState)
         binding = ActivityCreateBinding.inflate(layoutInflater)
         val view = binding.root
@@ -198,7 +196,7 @@ class CreateActivity : AppCompatActivity() {
         val message = getString(R.string.create_message2, customGameName)
         viewModel.saveDataToFirebase(customGameName, title, message).collect { response ->
             when (response) {
-                "success" -> {
+                FlowStatus.Success -> {
                     AlertDialog.Builder(this)
                         .setTitle(title)
                         .setMessage(message)
@@ -207,7 +205,7 @@ class CreateActivity : AppCompatActivity() {
                     binding.btnSave.isEnabled = true
                 }
 
-                "handle images" -> {
+                FlowStatus.HandleImages -> {
                     for (i in 0..<chosenImageUris.size) {
                         lifecycleScope.launch {
                             handleImageUploading(customGameName, i, chosenImageUris[i])
@@ -216,7 +214,6 @@ class CreateActivity : AppCompatActivity() {
                 }
 
                 else -> {
-                    Log.e(TAG, "Encounter error while saving game", Exception(response))
                     Toast.makeText(this, getString(R.string.create_message3), Toast.LENGTH_LONG)
                         .show()
                     binding.btnSave.isEnabled = true
@@ -227,29 +224,34 @@ class CreateActivity : AppCompatActivity() {
 
     private suspend fun handleImageUploading(gameName: String, index: Int, photoUri: Uri) {
         binding.pbUploading.visibility = View.VISIBLE
-        val imageByteArray = getImageByteArray(photoUri)
+        val imageByteArray =
+            getImageByteArray(photoUri = photoUri, contentResolver = contentResolver)
         val filePath = "images/$gameName/${System.currentTimeMillis()}-${index}.jpg"
         viewModel.handleImageUploading(gameName, filePath, imageByteArray).collect { response ->
-            if (response.second) {
-                val downloadUrl = response.first
-                uploadedImageUrls.add(downloadUrl)
-                binding.pbUploading.progress =
-                    uploadedImageUrls.size * 100 / chosenImageUris.size
-                Log.i(
-                    TAG,
-                    "Finished uploading $photoUri,num uploaded ${uploadedImageUrls.size}"
-                )
-                if (uploadedImageUrls.size == chosenImageUris.size) {
-                    handleAllImagesUploaded(gameName, uploadedImageUrls)
+            when (response.second) {
+                FlowStatus.Success -> {
+                    val downloadUrl = response.first
+                    uploadedImageUrls.add(downloadUrl)
+                    binding.pbUploading.progress =
+                        uploadedImageUrls.size * 100 / chosenImageUris.size
+                    Log.i(
+                        TAG,
+                        "Finished uploading $photoUri,num uploaded ${uploadedImageUrls.size}"
+                    )
+                    if (uploadedImageUrls.size == chosenImageUris.size) {
+                        handleAllImagesUploaded(gameName, uploadedImageUrls)
+                    }
                 }
-            } else {
-                Log.e(TAG, "Exception with Firebase Storage", Exception(response.first))
-                Toast.makeText(
-                    this,
-                    getString(R.string.create_message4),
-                    Toast.LENGTH_SHORT
-                ).show()
-                binding.pbUploading.visibility = View.GONE
+
+                else -> {
+                    Log.e(TAG, "Exception with Firebase Storage", Exception(response.first))
+                    Toast.makeText(
+                        this,
+                        getString(R.string.create_message4),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    binding.pbUploading.visibility = View.GONE
+                }
             }
         }
     }
@@ -260,37 +262,25 @@ class CreateActivity : AppCompatActivity() {
     ) {
         binding.pbUploading.visibility = View.GONE
         viewModel.handleAllImagesUploaded(gameName, imageUrls).collect {
-            if (it) {
-                Log.i(TAG, "Successfully create game $gameName")
-                AlertDialog.Builder(this)
-                    .setTitle(getString(R.string.create_title4))
-                    .setPositiveButton("OK") { _, _ ->
-                        val resultData = Intent()
-                        resultData.putExtra(EXTRA_GAME_NAME, gameName)
-                        setResult(Activity.RESULT_OK, resultData)
-                        finish()
-                    }.show()
-            } else {
-                Toast.makeText(this, getString(R.string.create_message5), Toast.LENGTH_SHORT)
-                    .show()
+            when (it) {
+                FlowStatus.Success -> {
+                    Log.i(TAG, "Successfully create game $gameName")
+                    AlertDialog.Builder(this)
+                        .setTitle(getString(R.string.create_title4))
+                        .setPositiveButton("OK") { _, _ ->
+                            val resultData = Intent()
+                            resultData.putExtra(EXTRA_GAME_NAME, gameName)
+                            setResult(Activity.RESULT_OK, resultData)
+                            finish()
+                        }.show()
+                }
+
+                else -> {
+                    Toast.makeText(this, getString(R.string.create_message5), Toast.LENGTH_SHORT)
+                        .show()
+                }
             }
         }
-    }
-
-    private fun getImageByteArray(photoUri: Uri): ByteArray {
-        val originalBitmap = if (Build.VERSION.SDK_INT >= 28) {
-            val source = ImageDecoder.createSource(contentResolver, photoUri)
-            ImageDecoder.decodeBitmap(source)
-        } else {
-            @Suppress("DEPRECATION")
-            MediaStore.Images.Media.getBitmap(contentResolver, photoUri)
-        }
-        Log.i(TAG, "Original width ${originalBitmap.width} and height ${originalBitmap.height}")
-        val scaledBitmap = BitmapScaler.scaleToFitHeight(originalBitmap, 250)
-        Log.i(TAG, "Scaled width ${scaledBitmap.width} and scaled height ${scaledBitmap.height}")
-        val byteOutputStream = ByteArrayOutputStream()
-        scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 60, byteOutputStream)
-        return byteOutputStream.toByteArray()
     }
 
     private fun launchIntentForPhotos() {
@@ -301,7 +291,7 @@ class CreateActivity : AppCompatActivity() {
     }
 
     companion object {
-        private const val TAG = "CreateActivity"
+        const val TAG = "CreateActivity"
         private const val READ_EXTERNAL_STORAGE = android.Manifest.permission.READ_EXTERNAL_STORAGE
 
         @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
