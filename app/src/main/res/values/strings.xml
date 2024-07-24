@@ -34,6 +34,9 @@
     <string name="main_title2">Download custom game</string>
     <string name="main_title3">Choose size of a board</string>
     <string name="main_title4">Choose new size</string>
+    <string name="main_title5">Get back to default game?</string>
+    <string name="main_title6">This game isn\'t support another board size. If you change it, the default game will be loaded. Continue?</string>
+    <string name="main_title7">Found a game with a name \'%1$s\' and size \'%2$dx%3$d\'. Are you sure, you want to download it?</string>
     <string name="main_message1">Sorry, we couldn\'t find any such game \'%1$s\'</string>
     <string name="main_message2">You\'re now playing \'%1$s\'</string>
     <string name="main_message3">Cancel</string>

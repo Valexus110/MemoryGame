@@ -89,8 +89,7 @@ class CreateActivity : AppCompatActivity() {
             adapter = addImagePickerAdapter()
             rvImagePicker.adapter = adapter
             rvImagePicker.setHasFixedSize(true)
-            var spanCount = boardSize.getWidth()
-            if (spanCount >= 4) spanCount = 3
+            val spanCount = if (boardSize.getWidth() >= 4) 3 else 2
             rvImagePicker.layoutManager = GridLayoutManager(this@CreateActivity, spanCount)
         }
     }

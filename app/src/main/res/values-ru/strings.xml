@@ -35,6 +35,9 @@
     <string name="main_title2">Загрузить пользовательскую игру</string>
     <string name="main_title3">Выберите размер доски</string>
     <string name="main_title4">Выберите новый размер</string>
+    <string name="main_title5">Вернуться к оригинальной игре?</string>
+    <string name="main_title6">Эта игра не поддерживает другой размер доски. При изменении будет создана оригинальная игра. Продолжить?</string>
+    <string name="main_title7">Найдена игра с именем \'%1$s\' и размером \'%2$dx%3$d\'. Вы уверены, что хотите загрузить её?</string>
     <string name="main_message1">Извините, подобной игры не существует \'%1$s\'</string>
     <string name="main_message2">Вы сейчас играете в \'%1$s\'</string>
     <string name="main_message3">Отмена</string>

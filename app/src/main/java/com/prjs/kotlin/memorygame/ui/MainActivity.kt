@@ -5,10 +5,12 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.Typeface
 import android.os.Bundle
 import android.util.Log
 import android.view.*
 import android.widget.EditText
+import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -38,6 +40,7 @@ class MainActivity : AppCompatActivity() {
 
     @Inject
     lateinit var viewModel: MainViewModel
+    private var homeButton: MenuItem? = null
     private var gameName: String? = null
     private var customGameImages: List<String>? = null
     private lateinit var memoryGame: MemoryGame
@@ -59,8 +62,24 @@ class MainActivity : AppCompatActivity() {
         return true
     }
 
+    override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
+        homeButton = menu?.findItem(R.id.mi_home)
+        return true
+    }
+
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
+            R.id.mi_home -> {
+                showAlertDialog(getString(R.string.main_title5), null) {
+                    gameName = null
+                    customGameImages = null
+                    homeButton?.setEnabled(false)
+                    homeButton?.setIcon(R.drawable.ic_home_icon_inactive)
+                    setupBoard()
+                }
+
+            }
+
             R.id.mi_refresh -> {
                 if (memoryGame.getNumMoves() > 0 && !memoryGame.haveWonGame()) {
                     showAlertDialog(getString(R.string.main_title1), null) {
@@ -73,7 +92,13 @@ class MainActivity : AppCompatActivity() {
             }
 
             R.id.mi_new_size -> {
-                showNewSizeDialog()
+                if (gameName != null) {
+                    showAlertDialog(getString(R.string.main_title6), null) {
+                        showNewSizeDialog()
+                    }
+                } else {
+                    showNewSizeDialog()
+                }
                 return true
             }
 
@@ -131,19 +156,30 @@ class MainActivity : AppCompatActivity() {
                 FlowStatus.Success -> {
                     val userImageList = response.second!!
                     val numCards = userImageList.images!!.size * 2
-                    boardSize = BoardSize.getByValue(numCards)
-                    customGameImages = userImageList.images
-                    for (imageUrl in userImageList.images) {
-                        Picasso.get().load(imageUrl).fetch()
+                    showAlertDialog(
+                        getString(
+                            R.string.main_title7,
+                            customGameName,
+                            4,
+                            numCards / 4
+                        ), null
+                    ) {
+                        boardSize = BoardSize.getByValue(numCards)
+                        customGameImages = userImageList.images
+                        for (imageUrl in userImageList.images) {
+                            Picasso.get().load(imageUrl).fetch()
+                        }
+                        Snackbar.make(
+                            binding.clRoot,
+                            getString(R.string.main_message2, customGameName),
+                            Snackbar.LENGTH_LONG
+                        )
+                            .show()
+                        gameName = customGameName
+                        homeButton?.setEnabled(true)
+                        homeButton?.setIcon(R.drawable.ic_home_icon)
+                        setupBoard()
                     }
-                    Snackbar.make(
-                        binding.clRoot,
-                        getString(R.string.main_message2, customGameName),
-                        Snackbar.LENGTH_LONG
-                    )
-                        .show()
-                    gameName = customGameName
-                    setupBoard()
                 }
 
                 else -> {
@@ -206,15 +242,21 @@ class MainActivity : AppCompatActivity() {
         view: View?,
         positiveClickListener: View.OnClickListener
     ) {
+        val customTv = TextView(this)
+        customTv.text = title
+        customTv.gravity = Gravity.CENTER
+        customTv.setPadding(0, 32, 0, 0)
+        customTv.textSize = 18f
+        customTv.setTextColor(Color.BLACK)
+        customTv.setTypeface(null, Typeface.BOLD)
         AlertDialog.Builder(this)
-            .setTitle(title)
+            .setCustomTitle(customTv)
             .setView(view)
             .setNegativeButton(getString(R.string.main_message3), null)
             .setPositiveButton("OK") { _, _ ->
                 positiveClickListener.onClick(null)
             }.show()
     }
-
 
     private fun setupBoard() {
         supportActionBar?.title = gameName ?: getString(R.string.app_name)
