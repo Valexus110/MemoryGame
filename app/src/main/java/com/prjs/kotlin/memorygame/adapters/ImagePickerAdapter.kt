@@ -13,13 +13,13 @@ import kotlin.math.min
 
 class ImagePickerAdapter(
     private val context: Context,
-    private val imageUris: List<Uri>,
+    private val imageUris: List<Uri?>,
     private val boardSize: BoardSize,
     private val imageClickListener: ImageClickListener
 ) : RecyclerView.Adapter<ImagePickerAdapter.ViewHolder>() {
 
     interface ImageClickListener {
-        fun onPlaceHolderClicked() {
+        fun onPlaceHolderClicked(positionToReplace: Int = -1) {
 
         }
     }
@@ -37,9 +37,9 @@ class ImagePickerAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         if (position < imageUris.size) {
-            holder.bind(imageUris[position])
+            holder.bind(imageUris[position],position)
         } else {
-            holder.bind()
+            holder.bind(position)
         }
     }
 
@@ -47,14 +47,16 @@ class ImagePickerAdapter(
 
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val ivCustomImage = itemView.findViewById<ImageView>(R.id.ivCustomImage)
-        fun bind(uri: Uri) {
+        fun bind(uri: Uri?, position: Int) {
             ivCustomImage.setImageURI(uri)
-            ivCustomImage.setOnClickListener(null)
+            ivCustomImage.setOnClickListener {
+                imageClickListener. onPlaceHolderClicked(positionToReplace = position)
+            }
         }
 
-        fun bind() {
+        fun bind(position: Int) {
             ivCustomImage.setOnClickListener {
-                imageClickListener.onPlaceHolderClicked()
+                imageClickListener.onPlaceHolderClicked(positionToReplace = position)
             }
         }
 

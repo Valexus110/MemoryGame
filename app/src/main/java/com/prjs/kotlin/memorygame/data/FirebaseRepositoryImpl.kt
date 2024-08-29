@@ -33,7 +33,7 @@ class FirebaseRepositoryImpl @Inject constructor() : FirebaseRepository {
         awaitClose { channel.close() }
     }
 
-    override fun saveDataToFirebase(customGameName: String, title: String, message: String) =
+    override fun saveDataToFirebase(customGameName: String) =
         callbackFlow {
             db.collection("games").document(customGameName).get().addOnSuccessListener { document ->
                 if (document != null && document.data != null) {

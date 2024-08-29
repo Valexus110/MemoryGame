@@ -8,16 +8,19 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Bundle
 import android.util.Log
-import android.view.*
+import android.view.Gravity
+import android.view.Menu
+import android.view.MenuItem
+import android.view.View
 import android.widget.EditText
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import com.github.jinatonic.confetti.CommonConfetti
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.analytics.ktx.analytics
@@ -28,7 +31,11 @@ import com.prjs.kotlin.memorygame.adapters.MemoryBoardAdapter
 import com.prjs.kotlin.memorygame.databinding.ActivityMainBinding
 import com.prjs.kotlin.memorygame.databinding.DialogBoardSizeBinding
 import com.prjs.kotlin.memorygame.models.MemoryGame
-import com.prjs.kotlin.memorygame.utils.*
+import com.prjs.kotlin.memorygame.models.UserImageList
+import com.prjs.kotlin.memorygame.utils.BoardSize
+import com.prjs.kotlin.memorygame.utils.EXTRA_BOARD_SIZE
+import com.prjs.kotlin.memorygame.utils.EXTRA_GAME_NAME
+import com.prjs.kotlin.memorygame.utils.FlowStatus
 import com.squareup.picasso.Picasso
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -138,7 +145,7 @@ class MainActivity : AppCompatActivity() {
             val gameToDownload = etDownloadGame.text.toString().trim()
             if (gameToDownload.isNotEmpty()) {
                 lifecycleScope.launch {
-                    downloadGame(gameToDownload)
+                    downloadGame(gameToDownload, isDownload = true)
                 }
             } else {
                 Snackbar.make(
@@ -150,35 +157,25 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun downloadGame(customGameName: String) {
+    private suspend fun downloadGame(customGameName: String, isDownload: Boolean = false) {
         viewModel.downloadGame(customGameName).collect { response ->
             when (response.first) {
                 FlowStatus.Success -> {
                     val userImageList = response.second!!
                     val numCards = userImageList.images!!.size * 2
-                    showAlertDialog(
-                        getString(
-                            R.string.main_title7,
-                            customGameName,
-                            4,
-                            numCards / 4
-                        ), null
-                    ) {
-                        boardSize = BoardSize.getByValue(numCards)
-                        customGameImages = userImageList.images
-                        for (imageUrl in userImageList.images) {
-                            Picasso.get().load(imageUrl).fetch()
+                    if (isDownload) {
+                        showAlertDialog(
+                            getString(
+                                R.string.main_title7,
+                                customGameName,
+                                4,
+                                numCards / 4
+                            ), null
+                        ) {
+                            setupDownloadGame(customGameName, userImageList, numCards)
                         }
-                        Snackbar.make(
-                            binding.clRoot,
-                            getString(R.string.main_message2, customGameName),
-                            Snackbar.LENGTH_LONG
-                        )
-                            .show()
-                        gameName = customGameName
-                        homeButton?.setEnabled(true)
-                        homeButton?.setIcon(R.drawable.ic_home_icon)
-                        setupBoard()
+                    } else {
+                        setupDownloadGame(customGameName, userImageList, numCards)
                     }
                 }
 
@@ -192,6 +189,28 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    private fun setupDownloadGame(
+        customGameName: String,
+        userImageList: UserImageList,
+        numCards: Int
+    ) {
+        boardSize = BoardSize.getByValue(numCards)
+        customGameImages = userImageList.images
+        for (imageUrl in userImageList.images!!) {
+            Picasso.get().load(imageUrl).fetch()
+        }
+        Snackbar.make(
+            binding.clRoot,
+            getString(R.string.main_message2, customGameName),
+            Snackbar.LENGTH_LONG
+        )
+            .show()
+        gameName = customGameName
+        homeButton?.setEnabled(true)
+        homeButton?.setIcon(R.drawable.ic_home_icon)
+        setupBoard()
     }
 
     private fun showCreationDialog() {
@@ -245,11 +264,12 @@ class MainActivity : AppCompatActivity() {
         val customTv = TextView(this)
         customTv.text = title
         customTv.gravity = Gravity.CENTER
-        customTv.setPadding(0, 32, 0, 0)
+        customTv.setPadding(16, 32, 16, 0)
         customTv.textSize = 18f
+        customTv.minLines = 2
         customTv.setTextColor(Color.BLACK)
         customTv.setTypeface(null, Typeface.BOLD)
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this, R.style.MaterialAlertDialog_rounded)
             .setCustomTitle(customTv)
             .setView(view)
             .setNegativeButton(getString(R.string.main_message3), null)

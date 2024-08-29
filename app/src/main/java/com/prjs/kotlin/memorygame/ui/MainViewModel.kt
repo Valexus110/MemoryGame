@@ -14,8 +14,8 @@ class MainViewModel @Inject constructor(
         return repository.downloadGame(customName)
     }
 
-    fun saveDataToFirebase(customGameName: String, title: String, message: String): Flow<FlowStatus> {
-        return repository.saveDataToFirebase(customGameName, title, message)
+    fun saveDataToFirebase(customGameName: String): Flow<FlowStatus> {
+        return repository.saveDataToFirebase(customGameName)
     }
 
     fun handleImageUploading(

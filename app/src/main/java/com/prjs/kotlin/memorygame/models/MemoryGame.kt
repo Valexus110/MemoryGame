@@ -28,7 +28,7 @@ class MemoryGame(private val boardSize: BoardSize, customImages: List<String>?) 
             restoresCards()
             indexOfSelectedCard = position
         } else {
-            foundMatch = checkForMatch(indexOfSelectedCard!!, position)
+            foundMatch = checkForMatch(indexOfSelectedCard ?: 0, position)
             indexOfSelectedCard = null
         }
         card.isFaceUp = !card.isFaceUp

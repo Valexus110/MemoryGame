@@ -2,28 +2,37 @@ package com.prjs.kotlin.memorygame.ui
 
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.app.AlertDialog
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.Typeface
 import android.net.Uri
 import android.os.Build
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.text.Editable
 import android.text.InputFilter
 import android.text.TextWatcher
 import android.util.Log
+import android.view.Gravity
 import android.view.MenuItem
 import android.view.View
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
+import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.prjs.kotlin.memorygame.MemoryGameApplication
 import com.prjs.kotlin.memorygame.R
 import com.prjs.kotlin.memorygame.adapters.ImagePickerAdapter
 import com.prjs.kotlin.memorygame.databinding.ActivityCreateBinding
-import com.prjs.kotlin.memorygame.utils.*
+import com.prjs.kotlin.memorygame.utils.BoardSize
+import com.prjs.kotlin.memorygame.utils.EXTRA_BOARD_SIZE
+import com.prjs.kotlin.memorygame.utils.EXTRA_GAME_NAME
+import com.prjs.kotlin.memorygame.utils.FlowStatus
+import com.prjs.kotlin.memorygame.utils.getImageByteArray
+import com.prjs.kotlin.memorygame.utils.isPermissionGranted
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -32,8 +41,10 @@ class CreateActivity : AppCompatActivity() {
     private lateinit var adapter: ImagePickerAdapter
     private lateinit var boardSize: BoardSize
     private var numImagesRequired = -1
-    private val chosenImageUris = mutableListOf<Uri>()
+    private val chosenImageUris = MutableList<Uri?>(4) { _ -> null }
     private val uploadedImageUrls = mutableListOf<String>()
+    private val urisSet = mutableSetOf<Int>()
+    private var imagePosition = 0
 
     @Inject
     lateinit var viewModel: MainViewModel
@@ -100,7 +111,8 @@ class CreateActivity : AppCompatActivity() {
             chosenImageUris,
             boardSize,
             object : ImagePickerAdapter.ImageClickListener {
-                override fun onPlaceHolderClicked() {
+                override fun onPlaceHolderClicked(positionToReplace: Int) {
+                    imagePosition = positionToReplace
                     if (
                         Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
                         isPermissionGranted(this@CreateActivity, READ_MEDIA_IMAGES)
@@ -160,22 +172,23 @@ class CreateActivity : AppCompatActivity() {
                 Log.i(TAG, "clipData numImages ${clipData.itemCount}:$clipData")
                 for (i in 0 until clipData.itemCount) {
                     val clipItem = clipData.getItemAt(i)
-                    if (chosenImageUris.size < numImagesRequired) {
+                    if (urisSet.size < numImagesRequired) {
                         chosenImageUris.add(clipItem.uri)
                     }
                 }
             } else if (selectedUri != null) {
                 Log.i(TAG, "data: $selectedUri")
-                chosenImageUris.add(selectedUri)
+                chosenImageUris[imagePosition] = selectedUri
+                urisSet.add(imagePosition)
             }
             adapter.notifyDataSetChanged()
             supportActionBar?.title =
-                getString(R.string.create_title2, chosenImageUris.size, numImagesRequired)
+                getString(R.string.create_title2, urisSet.size, numImagesRequired)
             binding.btnSave.isEnabled = shouldEnableSaveButton()
         }
 
     private fun shouldEnableSaveButton(): Boolean {
-        if (chosenImageUris.size != numImagesRequired) {
+        if (urisSet.size != numImagesRequired) {
             return false
         }
         binding.apply {
@@ -193,11 +206,19 @@ class CreateActivity : AppCompatActivity() {
         val customGameName = binding.etGameName.text.toString()
         val title = getString(R.string.create_title3)
         val message = getString(R.string.create_message2, customGameName)
-        viewModel.saveDataToFirebase(customGameName, title, message).collect { response ->
+        viewModel.saveDataToFirebase(customGameName).collect { response ->
             when (response) {
                 FlowStatus.Success -> {
-                    AlertDialog.Builder(this)
-                        .setTitle(title)
+                    val customTv = TextView(this)
+                    customTv.text = title
+                    customTv.gravity = Gravity.CENTER
+                    customTv.setPadding(16, 32, 16, 0)
+                    customTv.textSize = 18f
+                    customTv.minLines = 2
+                    customTv.setTextColor(Color.BLACK)
+                    customTv.setTypeface(null, Typeface.BOLD)
+                    MaterialAlertDialogBuilder(this, R.style.MaterialAlertDialog_rounded)
+                        .setCustomTitle(customTv)
                         .setMessage(message)
                         .setPositiveButton("OK", null)
                         .show()
@@ -205,9 +226,9 @@ class CreateActivity : AppCompatActivity() {
                 }
 
                 FlowStatus.HandleImages -> {
-                    for (i in 0..<chosenImageUris.size) {
+                    for (i in 0..<urisSet.size) {
                         lifecycleScope.launch {
-                            handleImageUploading(customGameName, i, chosenImageUris[i])
+                            chosenImageUris[i]?.let { handleImageUploading(customGameName, i, it) }
                         }
                     }
                 }
@@ -237,7 +258,7 @@ class CreateActivity : AppCompatActivity() {
                         TAG,
                         "Finished uploading $photoUri,num uploaded ${uploadedImageUrls.size}"
                     )
-                    if (uploadedImageUrls.size == chosenImageUris.size) {
+                    if (uploadedImageUrls.size == urisSet.size) {
                         handleAllImagesUploaded(gameName, uploadedImageUrls)
                     }
                 }
@@ -264,8 +285,16 @@ class CreateActivity : AppCompatActivity() {
             when (it) {
                 FlowStatus.Success -> {
                     Log.i(TAG, "Successfully create game $gameName")
-                    AlertDialog.Builder(this)
-                        .setTitle(getString(R.string.create_title4))
+                    val customTv = TextView(this)
+                    customTv.text = getString(R.string.create_title4)
+                    customTv.gravity = Gravity.CENTER
+                    customTv.setPadding(16, 32, 16, 0)
+                    customTv.textSize = 18f
+                    customTv.minLines = 2
+                    customTv.setTextColor(Color.BLACK)
+                    customTv.setTypeface(null, Typeface.BOLD)
+                    MaterialAlertDialogBuilder(this, R.style.MaterialAlertDialog_rounded)
+                        .setCustomTitle(customTv)
                         .setPositiveButton("OK") { _, _ ->
                             val resultData = Intent()
                             resultData.putExtra(EXTRA_GAME_NAME, gameName)

@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface FirebaseRepository {
     fun downloadGame(customGameName: String): Flow<Pair<FlowStatus, UserImageList?>>
-    fun saveDataToFirebase(customGameName: String, title: String, message: String): Flow<FlowStatus>
+    fun saveDataToFirebase(customGameName: String): Flow<FlowStatus>
     fun handleImageUploading(
         gameName: String,
         filePath: String,
